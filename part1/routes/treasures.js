@@ -1,10 +1,12 @@
+const auth = require("../middleware/auth");
 const _ = require("lodash");
-const Joi = require("joi");
+const { getDistance } = require("../ultils/geo");
+const { validate } = require("../models/treasures");
 const express = require("express");
 const router = express.Router();
 
-router.post("/find", (req, res) => {
-  const { error } = validateTreasure(req.body);
+router.post("/find", auth, (req, res) => {
+  const { error } = validate(req.body);
   if (error) {
     res.status(400).send(error.details[0].message);
     return;
@@ -12,7 +14,7 @@ router.post("/find", (req, res) => {
   // get all distance from treasures table
   let query =
     "SELECT id, latitude, longtitude, Name, amt FROM treasures T1 INNER JOIN money_values T2 ON T1.id = T2.treasure_id";
-  database.query(query, async (err, results) => {
+  database.query(query, (err, results) => {
     if (err) {
       console.log(`Error: ${err}`);
     }
@@ -26,67 +28,28 @@ router.post("/find", (req, res) => {
         result.longtitude
       );
       result.distance = distance;
+      // filter treasures with distance meet the requirement
       if (distance < req.body.distance) {
         treasures.push(result);
       }
     });
     if (req.body.prize) {
+      // filter price
       const filterByPrice = treasures.filter(treasure => {
-        return treasure.amt > req.body.prize;
+        return treasure.amt >= req.body.prize;
       });
-      res.send(filterByPrice);
+      // filter price based on min value
+      const result = _(filterByPrice)
+        .groupBy("id")
+        .map(group => _.minBy(group, "amt"))
+        .value();
+      res.send(result);
     } else {
-      res.send(treasures);
+      // remove duplicate
+      const result = _.uniqBy(treasures, "id");
+      res.send(result);
     }
   });
 });
-
-function validateTreasure(treasure) {
-  const schema = {
-    lat: Joi.number().required(),
-    long: Joi.number().required(),
-    distance: Joi.number()
-      .valid([1, 10])
-      .required(),
-    prize: Joi.number()
-      .integer()
-      .min(10)
-      .max(30)
-  };
-
-  return Joi.validate(treasure, schema);
-}
-
-// calculate distance between two points
-function getDistance(lat1, lon1, lat2, lon2) {
-  var R = 6371; // km
-  var dLat = toRad(lat2 - lat1);
-  var dLon = toRad(lon2 - lon1);
-  var lat1 = toRad(lat1);
-  var lat2 = toRad(lat2);
-
-  var a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
-  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  var d = R * c;
-  return d;
-}
-
-// Converts numeric degrees to radians
-function toRad(Value) {
-  return (Value * Math.PI) / 180;
-}
-
-function mergeNames(arr) {
-  return _.chain(arr)
-    .groupBy("id")
-    .mapValues(function(v) {
-      return _.chain(v)
-        .pluck("amt")
-        .flattenDeep();
-    })
-    .value();
-}
 
 module.exports = router;

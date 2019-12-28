@@ -1,3 +1,4 @@
 {
-  "JWTPrivateKey": "dindinn_jwtprivatekey"
+  "JWTPrivateKey": "dindinn_jwtprivatekey",
+  "db": "dindinn_db"
 }

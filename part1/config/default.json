@@ -1,3 +1,4 @@
 {
-  "JWTPrivateKey": ""
+  "JWTPrivateKey": "",
+  "db": "mysql://root:1@localhost:3306/dindinn"
 }

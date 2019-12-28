@@ -16,7 +16,7 @@ router.post("/find", auth, (req, res) => {
     "SELECT id, latitude, longtitude, Name, amt FROM treasures T1 INNER JOIN money_values T2 ON T1.id = T2.treasure_id";
   database.query(query, (err, results) => {
     if (err) {
-      console.log(`Error: ${err}`);
+      console.error(`Error: ${err}`);
     }
     // calculate each distance.
     const treasures = [];

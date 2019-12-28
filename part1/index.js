@@ -1,10 +1,9 @@
 const config = require("config");
 const mysql = require("mysql");
-const morgan = require("morgan");
 const helmet = require("helmet");
+const compression = require("compression");
 const express = require("express");
 const treasures = require("./routes/treasures");
-const users = require("./routes/users");
 const auth = require("./routes/auth");
 const app = express();
 
@@ -13,12 +12,7 @@ if (!config.get("JWTPrivateKey")) {
   process.exit(1);
 }
 
-const database = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "1",
-  database: "dindinn"
-});
+const database = mysql.createConnection(config.get("db"));
 
 // connect to database
 database.connect(err => {
@@ -31,11 +25,9 @@ global.database = database;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// app.use(helmet());
-// app.use(morgan("tiny"));
 app.use("/api/treasures", treasures);
-app.use("/api/users", users);
 app.use("/api/auth", auth);
-
+app.use(helmet());
+app.use(compression());
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Listening on port ${port} ...`));
